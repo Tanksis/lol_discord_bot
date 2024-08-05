@@ -2,17 +2,23 @@ const axios = require("axios");
 require("dotenv").config({ path: "../.env" });
 
 const api_key = process.env.RIOT_API_KEY;
-const getSummonerPuuid = async (summonerName) => {
+const getSummonerPuuid = async (summonerName, tag) => {
   try {
     const response = await axios.get(
-      `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${summonerName}/NA1`,
+      `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${summonerName}/${tag}`,
       {
         headers: {
           "X-Riot-Token": api_key,
         },
       },
     );
-    return response.data.puuid;
+
+    const puuid = response.data.puuid;
+
+    const account_id = await getSummonerAccountId(puuid);
+
+    const tftRank = await getTftRank(account_id);
+    return tftRank;
   } catch (error) {
     console.error(error);
   }

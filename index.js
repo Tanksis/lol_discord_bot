@@ -2,6 +2,8 @@
 require("dotenv").config();
 const fs = require("node:fs");
 const path = require("node:path");
+const { initializeDatabase } = require("./database");
+
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const token = process.env.DISCORD_API_KEY;
 //create new client instance
@@ -47,3 +49,5 @@ for (const file of eventFiles) {
 
 //login with disc token
 client.login(token);
+
+initializeDatabase();
