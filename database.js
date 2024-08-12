@@ -10,11 +10,50 @@ const sequelize = new Sequelize("database", "user", "password", {
 const Summoners = sequelize.define("summoners", {
   username: Sequelize.STRING,
   tag: Sequelize.STRING,
+  tier: Sequelize.STRING,
+  rank: Sequelize.STRING,
+  leaguePoints: Sequelize.STRING,
+  wins: Sequelize.INTEGER,
+  losses: Sequelize.INTEGER,
 });
 
 const initializeDatabase = async () => {
   await sequelize.sync();
   console.log("database synced");
+};
+
+const updateSummonerData = async ({
+  username,
+  tag,
+  tier,
+  rank,
+  leaguePoints,
+  wins,
+  losses,
+}) => {
+  try {
+    const [summoner, created] = await Summoners.findOrCreate({
+      where: { username, tag },
+      defaults: {
+        tier,
+        rank,
+        leaguePoints,
+        wins,
+        losses,
+      },
+    });
+
+    if (!created) {
+      summoner.tier = tier;
+      summoner.rank = rank;
+      summoner.leaguePoints = leaguePoints;
+      summoner.wins = wins;
+      summoner.losses = losses;
+      await summoner.save();
+    }
+  } catch (error) {
+    console.error("Error updating summoner data:", error);
+  }
 };
 
 const printData = async () => {
@@ -33,4 +72,9 @@ const printData = async () => {
 };
 
 printData();
-module.exports = { Summoners, sequelize, initializeDatabase };
+module.exports = {
+  Summoners,
+  sequelize,
+  initializeDatabase,
+  updateSummonerData,
+};

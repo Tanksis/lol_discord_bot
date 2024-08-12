@@ -1,5 +1,5 @@
-const { SlashCommandBuilder } = require("discord.js");
-const { Summoners } = require("../../database");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { Summoners, updateSummonerData } = require("../../database");
 const { getSummonerPuuid } = require("../../api/riot_puuid");
 
 const tierOrder = [
@@ -62,15 +62,35 @@ function compareRanks(a, b) {
 
   return b.leaguePoints - a.leaguePoints; // Higher league points first
 }
-// function formatRankTable(ranks) {
-//   let table = "Summoner        | Rank    | LP | Wins | Losses\n";
-//   table += "----------------|---------|----|------|-------\n";
-//
-//   ranks.forEach((rank) => {
-//     table += `${rank.summonerName} | ${rank.tier} ${rank.rank} | ${rank.leaguePoints} | ${rank.wins} | ${rank.losses}\n`;
-//   });
-//   return table;
-// }
+
+function formatChange(oldRank, newRank, summonerName) {
+  const oldTierIndex = tierOrder.indexOf(oldRank.tier);
+  const newTierIndex = tierOrder.indexOf(newRank.tier);
+  const oldRankIndex = rankOrder.indexOf(oldRank.rank);
+  const newRankIndex = rankOrder.indexOf(newRank.rank);
+
+  let changeMessage = "";
+
+  if (newTierIndex < oldTierIndex) {
+    changeMessage += `\`\`\`diff\n+${oldTierIndex - newTierIndex} Tier(s) (${summonerName})\n\`\`\``;
+  } else if (newTierIndex > oldTierIndex) {
+    changeMessage += `\`\`\`diff\n-${newTierIndex - oldTierIndex} Tier(s) (${summonerName})\n\`\`\``;
+  }
+
+  if (newRankIndex < oldRankIndex) {
+    changeMessage += `\`\`\`diff\n+${oldRankIndex - newRankIndex} Rank(s) (${summonerName})\n\`\`\``;
+  } else if (newRankIndex > oldRankIndex) {
+    changeMessage += `\`\`\`diff\n-${newRankIndex - oldRankIndex} Rank(s) (${summonerName})\n\`\`\``;
+  }
+
+  const lpChange = (newRank.leaguePoints || 0) - (oldRank.leaguePoints || 0);
+  if (lpChange !== 0) {
+    const sign = lpChange >= 0 ? "+" : "-";
+    changeMessage += `\`\`\`diff\n${sign}${Math.abs(lpChange)} LP (${summonerName})\n\`\`\``;
+  }
+
+  return changeMessage || null;
+}
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("tft_leaderboard")
@@ -81,33 +101,78 @@ module.exports = {
     try {
       const summoners = await Summoners.findAll();
       const ranks = [];
+      const changes = [];
+      let hasChanges = false;
 
       for (const summoner of summoners) {
         const { username, tag } = summoner.dataValues;
         const rank = await getTftRank(username, tag);
+        const oldData = summoner.dataValues;
         if (rank) {
-          ranks.push({
+          const newRank = {
             summonerName: username,
             tier: rank.tier,
             rank: rank.rank,
             leaguePoints: rank.leaguePoints,
             wins: rank.wins,
             losses: rank.losses,
-          });
+            tag,
+          };
+
+          ranks.push(newRank);
+
+          const changeMessage = formatChange(oldData, newRank, username);
+          if (changeMessage) {
+            changes.push(changeMessage);
+            hasChanges = true;
+          }
         } else {
           ranks.push({
             summonerName: username,
             tier: "TRASH",
-            rank: "TRASH",
-            leaguePoints: "TRASH",
-            wins: "TRASH",
-            losses: "TRASH",
+            rank: "V",
+            leaguePoints: "0",
+            wins: "0",
+            losses: "0",
+            tag,
           });
         }
       }
       ranks.sort(compareRanks);
       const rankTable = formatRankTable(ranks);
-      await interaction.editReply(`\`\`\`\n${rankTable}\n\`\`\``);
+      const formattedTable = `\`\`\`\n${rankTable}\n\`\`\``;
+
+      const embed = new EmbedBuilder()
+        .setTitle("Top TFT Summoners")
+        .setColor(9442302)
+        .setTimestamp()
+        .addFields({
+          name: "Here are the latest rankings:",
+          value: formattedTable,
+        })
+        .addFields({
+          name: "Changes since last launch:",
+          value: changes.length > 0 ? changes.join("\n") : "No changes",
+          inline: true,
+        });
+
+      await interaction.editReply({
+        embeds: [embed],
+        ephemeral: true,
+      });
+
+      for (const rank of ranks) {
+        await updateSummonerData({
+          username: rank.summonerName,
+          tier: rank.tier,
+          rank: rank.rank,
+          leaguePoints: rank.leaguePoints,
+          wins: rank.wins,
+          losses: rank.losses,
+          tag: rank.tag,
+        });
+      }
+      console.log(changes);
     } catch (error) {
       console.error(error);
       await interaction.editReply(
