@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { Summoners, updateSummonerData } = require("../../database");
 const { getSummonerPuuid } = require("../../api/riot_puuid");
+const compareRanks = require("./../../functions/compareRanks");
+const { formatChange } = require("./../../functions/formatChange");
 
 const tierOrder = [
   "IRON",
@@ -28,7 +30,7 @@ async function getTftRank(summonerName, tag) {
   }
 }
 function formatRankTable(ranks) {
-  const headers = ["Summoner", "Tier", "Rank", "LP", "Wins", "Losses"];
+  const headers = ["Summoner", "Tier", "Rank", "LP", "W", "L"];
   const rows = ranks.map((rank) => [
     rank.summonerName,
     rank.tier,
@@ -53,44 +55,6 @@ function formatRankTable(ranks) {
   return `${formattedHeaders}\n${separator}\n${formattedRows}`;
 }
 
-function compareRanks(a, b) {
-  const tierComparison = tierOrder.indexOf(b.tier) - tierOrder.indexOf(a.tier);
-  if (tierComparison !== 0) return tierComparison;
-
-  const rankComparison = rankOrder.indexOf(b.rank) - rankOrder.indexOf(a.rank);
-  if (rankComparison !== 0) return rankComparison;
-
-  return b.leaguePoints - a.leaguePoints; // Higher league points first
-}
-
-function formatChange(oldRank, newRank, summonerName) {
-  const oldTierIndex = tierOrder.indexOf(oldRank.tier);
-  const newTierIndex = tierOrder.indexOf(newRank.tier);
-  const oldRankIndex = rankOrder.indexOf(oldRank.rank);
-  const newRankIndex = rankOrder.indexOf(newRank.rank);
-
-  let changeMessage = "";
-
-  if (newTierIndex < oldTierIndex) {
-    changeMessage += `\`\`\`diff\n+${oldTierIndex - newTierIndex} Tier(s) (${summonerName})\n\`\`\``;
-  } else if (newTierIndex > oldTierIndex) {
-    changeMessage += `\`\`\`diff\n-${newTierIndex - oldTierIndex} Tier(s) (${summonerName})\n\`\`\``;
-  }
-
-  if (newRankIndex < oldRankIndex) {
-    changeMessage += `\`\`\`diff\n+${oldRankIndex - newRankIndex} Rank(s) (${summonerName})\n\`\`\``;
-  } else if (newRankIndex > oldRankIndex) {
-    changeMessage += `\`\`\`diff\n-${newRankIndex - oldRankIndex} Rank(s) (${summonerName})\n\`\`\``;
-  }
-
-  const lpChange = (newRank.leaguePoints || 0) - (oldRank.leaguePoints || 0);
-  if (lpChange !== 0) {
-    const sign = lpChange >= 0 ? "+" : "-";
-    changeMessage += `\`\`\`diff\n${sign}${Math.abs(lpChange)} LP (${summonerName})\n\`\`\``;
-  }
-
-  return changeMessage || null;
-}
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("tft_leaderboard")
@@ -138,6 +102,7 @@ module.exports = {
           });
         }
       }
+
       ranks.sort(compareRanks);
       const rankTable = formatRankTable(ranks);
       const formattedTable = `\`\`\`\n${rankTable}\n\`\`\``;
@@ -172,7 +137,6 @@ module.exports = {
           tag: rank.tag,
         });
       }
-      console.log(changes);
     } catch (error) {
       console.error(error);
       await interaction.editReply(
