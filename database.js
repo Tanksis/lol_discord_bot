@@ -3,7 +3,7 @@ require("dotenv").config();
 
 /* const PASSWORD = process.env.DB_PASSWORD; */
 const HOST = process.env.HOST;
-const USERNAME = process.env.USERNAME;
+const USERNAME = process.env.NAME;
 const PASSWORD = process.env.PASSWORD;
 const DATABASE = process.env.DATABASE;
 const PORT = process.env.PORT;
