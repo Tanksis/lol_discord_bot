@@ -19,22 +19,13 @@ better!
 
 ## Commands
 
-- **/tft_leaderboard**: Fetches and displays the TFT leaderboard. Provides
-  updates since last call.
+- **/tft_leaderboard**: Fetches and displays the TFT leaderboard, providing updates since the last call.
 
-![Image of Leaderboard](./images/leaderboard.png)
+  <img src="./images/leaderboard.png" alt="Image of Leaderboard" width="500"/>
 
-- **/addaccount**: Opens a modal allowing you to insert summoners into the
-  guilds leaderboard, given the summoner name and respective tag. (EG.
-  Tanksiss#NA1)
+- **/addaccount**: Opens a modal allowing you to insert summoners into the guild’s leaderboard, given the summoner name and respective tag (e.g., Tanksiss#NA1).
 
-![Image of add_account](./images/add_account.png)
-
-## Development
-
-- **SQLite to MariaDB Migration**: Initial development used SQLite, but migration to MariaDB/MySQL was implemented for handling multiple Discord guilds and scaling.
-- **Sorting Algorithm**: Developed a custom algorithm to sort summoners based on tier, rank, and LP.
-- **Testing**: Created unit tests using Jest to verify the functionality of comparison operations.
+  <img src="./images/add_account.png" alt="Image of Add Account" width="500"/>
 
 ## Stack
 
