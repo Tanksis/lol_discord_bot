@@ -1,36 +1,48 @@
 const Sequelize = require("sequelize");
+require("dotenv").config();
 
-const sequelize = new Sequelize("database", "user", "password", {
-  host: "localhost",
-  dialect: "sqlite",
+/* const PASSWORD = process.env.DB_PASSWORD; */
+const HOST = process.env.HOST;
+const USERNAME = process.env.USERNAME;
+const PASSWORD = process.env.PASSWORD;
+const DATABASE = process.env.DATABASE;
+const PORT = process.env.PORT;
+
+const sequelize = new Sequelize(DATABASE, USERNAME, PASSWORD, {
+  host: HOST,
+  port: PORT,
+  dialect: "mariadb",
   logging: false,
-  storage: "database.sqlite",
 });
 
-const Summoners = sequelize.define("summoners", {
-  username: Sequelize.STRING,
-  tag: Sequelize.STRING,
-  tier: Sequelize.STRING,
-  rank: Sequelize.STRING,
-  leaguePoints: Sequelize.STRING,
-  wins: Sequelize.INTEGER,
-  losses: Sequelize.INTEGER,
-});
-
-const initializeDatabase = async () => {
-  await sequelize.sync();
-  console.log("database synced");
+const createSummonersModel = (guildId) => {
+  return sequelize.define(`summoners_${guildId}`, {
+    username: Sequelize.STRING,
+    tag: Sequelize.STRING,
+    tier: Sequelize.STRING,
+    rank: Sequelize.STRING,
+    leaguePoints: Sequelize.INTEGER,
+    wins: Sequelize.INTEGER,
+    losses: Sequelize.INTEGER,
+  });
 };
 
-const updateSummonerData = async ({
-  username,
-  tag,
-  tier,
-  rank,
-  leaguePoints,
-  wins,
-  losses,
-}) => {
+const initializeDatabase = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log("Connected to MariaDB");
+    await sequelize.sync();
+    console.log("database synced");
+  } catch (error) {
+    console.error("Unable to connect to Database:", error);
+  }
+};
+
+const updateSummonerData = async (
+  guildId,
+  { username, tag, tier, rank, leaguePoints, wins, losses },
+) => {
+  const Summoners = createSummonersModel(guildId);
   try {
     const [summoner, created] = await Summoners.findOrCreate({
       where: { username, tag },
@@ -55,25 +67,25 @@ const updateSummonerData = async ({
     console.error("Error updating summoner data:", error);
   }
 };
+//
+// const printData = async () => {
+//   try {
+//     await sequelize.sync();
+//
+//     const summoners = await Summoners.findAll();
+//
+//     console.log("Summoners in the database:");
+//     summoners.forEach((summoner, index) => {
+//       console.log(`${index + 1}: ${summoner.username} - ${summoner.tag}`);
+//     });
+//   } catch (error) {
+//     console.error("error querying database", error);
+//   }
+// };
 
-const printData = async () => {
-  try {
-    await sequelize.sync();
-
-    const summoners = await Summoners.findAll();
-
-    console.log("Summoners in the database:");
-    summoners.forEach((summoner, index) => {
-      console.log(`${index + 1}: ${summoner.username} - ${summoner.tag}`);
-    });
-  } catch (error) {
-    console.error("error querying database", error);
-  }
-};
-
-printData();
+/* printData(); */
 module.exports = {
-  Summoners,
+  createSummonersModel,
   sequelize,
   initializeDatabase,
   updateSummonerData,

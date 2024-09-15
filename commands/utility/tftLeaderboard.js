@@ -1,21 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { Summoners, updateSummonerData } = require("../../database");
+const {
+  createSummonersModel,
+  updateSummonerData,
+  sequelize,
+} = require("../../database");
 const { getSummonerPuuid } = require("../../api/riot_puuid");
 const compareRanks = require("./../../functions/compareRanks");
 const { formatChange } = require("./../../functions/formatChange");
-
-const tierOrder = [
-  "IRON",
-  "BRONZE",
-  "SILVER",
-  "GOLD",
-  "PLATINUM",
-  "DIAMOND",
-  "MASTER",
-  "GRANDMASTER",
-  "CHALLENGER",
-];
-const rankOrder = ["IV", "III", "II", "I"];
 
 async function getTftRank(summonerName, tag) {
   try {
@@ -62,11 +53,14 @@ module.exports = {
 
   async execute(interaction) {
     await interaction.deferReply();
+
+    const guildId = interaction.guild.id;
+    const Summoners = createSummonersModel(guildId);
     try {
+      await sequelize.sync();
       const summoners = await Summoners.findAll();
       const ranks = [];
       const changes = [];
-      let hasChanges = false;
 
       for (const summoner of summoners) {
         const { username, tag } = summoner.dataValues;
@@ -88,7 +82,6 @@ module.exports = {
           const changeMessage = formatChange(oldData, newRank, username);
           if (changeMessage) {
             changes.push(changeMessage);
-            hasChanges = true;
           }
         } else {
           ranks.push({
