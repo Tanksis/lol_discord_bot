@@ -8,6 +8,8 @@ const PASSWORD = process.env.PASSWORD;
 const DATABASE = process.env.DATABASE;
 const PORT = process.env.PORT;
 
+console.log("DB USERNAME", USERNAME);
+
 const sequelize = new Sequelize(DATABASE, USERNAME, PASSWORD, {
   host: HOST,
   port: PORT,

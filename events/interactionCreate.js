@@ -1,5 +1,5 @@
 const { Events } = require("discord.js");
-const { Summoners } = require("../database");
+const { createSummonersModel } = require("../database");
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
@@ -34,6 +34,10 @@ module.exports = {
         const summonerName =
           interaction.fields.getTextInputValue("summonerNameInput");
         const tagLine = interaction.fields.getTextInputValue("tagLineInput");
+
+        const guildId = interaction.guild.id;
+
+        const Summoners = createSummonersModel(guildId);
 
         try {
           const account = await Summoners.create({
