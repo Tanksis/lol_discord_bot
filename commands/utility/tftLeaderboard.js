@@ -120,7 +120,7 @@ module.exports = {
       });
 
       for (const rank of ranks) {
-        await updateSummonerData({
+        await updateSummonerData(guildId, {
           username: rank.summonerName,
           tier: rank.tier,
           rank: rank.rank,
